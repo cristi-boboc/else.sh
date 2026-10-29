@@ -184,7 +184,7 @@
 <section class="hero" aria-labelledby="title">
   <h1 id="title" class="cond"><span class="line"><span class="k">if</span>   a command; <span class="k">then</span> run it</span><span class="line"><span class="k">elif</span> a typo;    <span class="k">then</span> say so</span><span class="line"><span class="k">else</span></span><span class="line else-line">     hand it to your agent</span><span class="line"><span class="k">fi</span></span></h1>
 
-  <p class="lede">You type <code>fix the flaky token test</code> into a plain terminal, forgetting you're not in Claude Code. else.sh catches the <code>command not found</code> and starts your agent with what you typed.</p>
+  <p class="lede">You type <code>fix the flaky token test</code> into a plain terminal, forgetting you're not in Claude Code. else.sh catches the <code>command not found</code>, shows you the prompt, and on Enter starts your agent with it.</p>
 
   <div class="install" id="install">
     <div class="tabs" role="tablist" aria-label="Install for">
@@ -297,7 +297,7 @@
   <pre class="block"><span class="k">default_agent</span> = <span class="s">"claude"</span>
 <span class="k">min_words</span>     = 2      <span class="c"># shorter lines count as typos, unless they end with "?"</span>
 <span class="k">typo_guard</span>    = true   <span class="c"># skip lines one edit away from a real command</span>
-<span class="k">announce</span>      = true   <span class="c"># print "else.sh → claude" before starting</span>
+<span class="k">confirm</span>       = true   <span class="c"># Enter sends, e edits, Esc cancels; false sends at once</span>
 
 <span class="c"># change how a built-in agent starts</span>
 [<span class="k">agents.claude</span>]

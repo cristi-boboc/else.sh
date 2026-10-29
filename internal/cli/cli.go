@@ -128,7 +128,13 @@ func start(cfg config.Config, text string) int {
 		fmt.Fprintln(os.Stderr, "else.sh:", err)
 		return declined
 	}
-	if cfg.Announce {
+	switch {
+	case cfg.Confirm:
+		var send bool
+		if text, send = confirm(a.Name, text); !send {
+			return 130
+		}
+	case cfg.Announce:
 		fmt.Fprintf(os.Stderr, "%s %s\n", dim("else.sh →"), bold(a.Name))
 	}
 	code, err := launch.Run(path, a.Argv(text))

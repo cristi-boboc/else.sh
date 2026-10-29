@@ -3,7 +3,8 @@
 **Type a prompt in your shell. Your coding agent picks it up.**
 
 You forget you're not inside Claude Code and type `fix the flaky token test` into a plain terminal.
-Instead of `command not found`, else.sh starts your agent with exactly that prompt.
+Instead of `command not found`, else.sh shows the prompt; press Enter and your agent starts with it
+(`e` edits it first, Esc cancels).
 
 ![else.sh demo: a prompt typed into bash opens Claude Code with it; a typo still gets the normal error](demo/demo.gif)
 
@@ -134,7 +135,8 @@ default_agent = "claude"
 min_words = 2         # shorter lines are treated as typos (unless they end with "?")
 typo_guard = true     # skip lines whose first word is one edit away from a real command
 zsh_no_nomatch = true
-announce = true       # print "else.sh → claude" before the agent starts
+confirm = true        # show the prompt first: Enter sends, e edits, Esc cancels
+announce = true       # with confirm = false: print "else.sh → claude" and start right away
 ```
 
 ## Releasing

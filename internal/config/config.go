@@ -30,7 +30,9 @@ type Config struct {
 	TypoGuard bool `toml:"typo_guard"`
 	// ZshNoNomatch sets `setopt no_nomatch` so `?` and `*` in prompts don't abort the line.
 	ZshNoNomatch bool `toml:"zsh_no_nomatch"`
-	// Announce prints a one-line notice before the agent starts.
+	// Confirm shows the prompt and waits for Enter before the agent starts.
+	Confirm bool `toml:"confirm"`
+	// Announce prints a one-line notice before the agent starts (when Confirm is off).
 	Announce bool `toml:"announce"`
 	// Agents adds new agents or overrides built-in ones.
 	Agents map[string]Agent `toml:"agents"`
@@ -43,6 +45,7 @@ func Default() Config {
 		MinWords:     2,
 		TypoGuard:    true,
 		ZshNoNomatch: true,
+		Confirm:      true,
 		Announce:     true,
 	}
 }

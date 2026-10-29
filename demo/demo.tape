@@ -30,6 +30,8 @@ Sleep 600ms
 Type "fix the flaky token expiry test"
 Sleep 500ms
 Enter
+Sleep 1.8s
+Enter
 Sleep 5.5s
 
 Type "# typos and real commands still behave normally:"
