@@ -4,6 +4,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -105,6 +106,9 @@ func handle(args []string) int {
 }
 
 func ask(args []string) int {
+	if len(args) > 0 && args[0] == "--" {
+		args = args[1:]
+	}
 	text := strings.TrimSpace(strings.Join(args, " "))
 	if text == "" {
 		fmt.Fprintln(os.Stderr, "usage: else.sh ask <prompt...>")
@@ -163,8 +167,12 @@ func initCmd(args []string) error {
 	if err != nil {
 		return err
 	}
+	ask := exe
+	if p, err := exec.LookPath("else.sh"); err == nil && sameFile(p, exe) {
+		ask = "else.sh"
+	}
 	cfg, _, _ := config.Load()
-	script, err := shell.Init(name, exe, cfg.ZshNoNomatch)
+	script, err := shell.Init(name, exe, ask, cfg.ZshNoNomatch)
 	if err != nil {
 		return err
 	}
@@ -339,6 +347,12 @@ func agentNames(all []agent.Agent) string {
 		n[i] = a.Name
 	}
 	return strings.Join(n, ", ")
+}
+
+func sameFile(a, b string) bool {
+	fa, errA := os.Stat(a)
+	fb, errB := os.Stat(b)
+	return errA == nil && errB == nil && os.SameFile(fa, fb)
 }
 
 func self() (string, error) {

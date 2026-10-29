@@ -3,6 +3,8 @@ package shell
 import (
 	"fmt"
 	"strings"
+
+	"github.com/cristi-boboc/else.sh/internal/prompt"
 )
 
 // The hooks hand unknown commands to `else.sh handle`. Exit status 127 means
@@ -31,6 +33,27 @@ command_not_found_handle() {
   printf 'bash: %s: command not found\n' "$1" >&2
   return 127
 }
+# Lines that start with a question word can name a real command, so they are
+# rewritten on Enter, before the shell runs them.
+__ELSE_SH_SW=" __SW__ " __ELSE_SH_QW=" __QW__ "
+__else_sh_rewrite() {
+  [[ -n "${ELSE_SH_DISABLE:-}" ]] && return
+  local line="${READLINE_LINE#"${READLINE_LINE%%[![:space:]]*}"}"
+  [[ -z "$line" || "$line" == *[\|\;\&\<\>\__BT__\$]* ]] && return
+  local first="${line%% *}"; first="${first%%\'*}"; first="${first,,}"
+  local -a words; read -ra words <<< "$line"
+  if { [[ "$__ELSE_SH_SW" == *" $first "* ]] && (( ${#words[@]} >= 3 )); } ||
+     { [[ "$line" == *\? && "$__ELSE_SH_QW" == *" $first "* ]]; }; then
+    READLINE_LINE="__ASK__ ask -- '${line//\'/\'\\\'\'}'"
+    READLINE_POINT=${#READLINE_LINE}
+  fi
+}
+if [[ $- == *i* ]] && (( BASH_VERSINFO[0] >= 4 )); then
+  bind -x '"\C-x\C-]": __else_sh_rewrite'
+  bind '"\C-m": "\C-x\C-]\C-j"'
+  bind -m vi-insert -x '"\C-x\C-]": __else_sh_rewrite' 2>/dev/null
+  bind -m vi-insert '"\C-m": "\C-x\C-]\C-j"' 2>/dev/null
+fi
 `
 
 const zshHook = `# else.sh hook for zsh — https://github.com/cristi-boboc/else.sh
@@ -53,6 +76,31 @@ __NOMATCH__command_not_found_handler() {
   print -u2 -r -- "zsh: command not found: $1"
   return 127
 }
+# Lines that start with a question word can name a real command (macOS has
+# /usr/bin/what), so they are rewritten on Enter, before the shell runs them.
+typeset -ga __else_sh_sw=(__SW__) __else_sh_qw=(__QW__)
+__else_sh_accept_line() {
+  if [[ -z "${ELSE_SH_DISABLE:-}" ]]; then
+    local line="${BUFFER##[[:space:]]#}"
+    local first="${${(L)line%% *}%%\'*}"
+    local -a words=(${=line})
+    if [[ -n "$line" && "$line" != *[\|\;\&\<\>\__BT__\$]* ]]; then
+      local lead=0
+      (( ${__else_sh_sw[(Ie)$first]} && ${#words} >= 3 )) && lead=1
+      [[ "$line" == *\? ]] && (( ${__else_sh_qw[(Ie)$first]} )) && lead=1
+      (( lead )) && BUFFER="__ASK__ ask -- ${(qq)line}"
+    fi
+  fi
+  if (( ${+widgets[__else_sh_orig_accept_line]} )); then
+    zle __else_sh_orig_accept_line "$@"
+  else
+    zle .accept-line "$@"
+  fi
+}
+if [[ "${widgets[accept-line]}" == user:* && "${widgets[accept-line]}" != user:__else_sh_accept_line ]]; then
+  zle -A accept-line __else_sh_orig_accept_line
+fi
+zle -N accept-line __else_sh_accept_line
 `
 
 const fishHook = `# else.sh hook for fish — https://github.com/cristi-boboc/else.sh
@@ -76,6 +124,23 @@ function fish_command_not_found
         __fish_default_command_not_found_handler $argv
     end
 end
+# Lines that start with a question word can name a real command, so they are
+# rewritten on Enter, before the shell runs them.
+function __else_sh_enter
+    set -l line (string trim -- (commandline | string collect))
+    if not set -q ELSE_SH_DISABLE; and test -n "$line"; and not string match -qr '[|;&<>__BT__$]' -- $line
+        set -l first (string split -m1 ' ' -- $line)[1]
+        set first (string lower -- (string replace -r "'.*" '' -- $first))
+        set -l n (count (string split -n ' ' -- $line))
+        if begin; contains -- $first __SW__; and test $n -ge 3; end
+            or begin; string match -qr '\?$' -- $line; and contains -- $first __QW__; end
+            commandline -r -- "__ASK__ ask -- "(string escape -- $line)
+        end
+    end
+    commandline -f execute
+end
+bind \r __else_sh_enter
+bind -M insert \r __else_sh_enter 2>/dev/null
 `
 
 const powershellHook = `# else.sh hook for PowerShell — https://github.com/cristi-boboc/else.sh
@@ -93,23 +158,54 @@ $ExecutionContext.InvokeCommand.CommandNotFoundAction = {
         }
     }.GetNewClosure()
 }
+# Lines that start with a question word can name a real command, so they are
+# rewritten on Enter, before PowerShell runs them.
+if (Get-Module PSReadLine) {
+    Set-PSReadLineKeyHandler -Key Enter -BriefDescription ElseShAcceptLine -ScriptBlock {
+        $line = $null; $cursor = $null
+        [Microsoft.PowerShell.PSConsoleReadLine]::GetBufferState([ref]$line, [ref]$cursor)
+        $t = $line.Trim()
+        if (-not $env:ELSE_SH_DISABLE -and $t -and $t -notmatch '[|;&<>__BT__$]') {
+            $words = @($t -split '\s+')
+            $first = ($words[0] -replace "'.*", '').ToLower()
+            if ((@(__SW__) -contains $first -and $words.Count -ge 3) -or ($t.EndsWith('?') -and @(__QW__) -contains $first)) {
+                [Microsoft.PowerShell.PSConsoleReadLine]::Replace(0, $line.Length, "& __ASK__ ask -- '" + ($t -replace "'", "''") + "'")
+            }
+        }
+        [Microsoft.PowerShell.PSConsoleReadLine]::AcceptLine()
+    }
+}
 `
 
 // Init renders the hook script for a shell. exe is the absolute path of the
-// else.sh binary; noNomatch applies only to zsh.
-func Init(name, exe string, noNomatch bool) (string, error) {
-	var tpl, quoted string
+// else.sh binary and ask the command written into rewritten lines ("else.sh"
+// when that resolves to exe, so history stays readable); noNomatch applies
+// only to zsh.
+func Init(name, exe, ask string, noNomatch bool) (string, error) {
+	var tpl string
+	var quote func(string) string
+	list := func(words []string) string { return strings.Join(words, " ") }
 	switch name {
 	case Bash:
-		tpl, quoted = bashHook, posixQuote(exe)
+		tpl, quote = bashHook, posixQuote
 	case Zsh:
-		tpl, quoted = zshHook, posixQuote(exe)
+		tpl, quote = zshHook, posixQuote
 	case Fish:
-		tpl, quoted = fishHook, fishQuote(exe)
+		tpl, quote = fishHook, fishQuote
 	case PowerShell:
-		tpl, quoted = powershellHook, psQuote(exe)
+		tpl, quote = powershellHook, psQuote
+		list = func(words []string) string {
+			q := make([]string, len(words))
+			for i, w := range words {
+				q[i] = psQuote(w)
+			}
+			return strings.Join(q, ",")
+		}
 	default:
 		return "", fmt.Errorf("unsupported shell %q (supported: %s)", name, strings.Join(Names, ", "))
+	}
+	if ask != "else.sh" {
+		ask = quote(ask)
 	}
 	nomatch := ""
 	if name == Zsh && noNomatch {
@@ -117,8 +213,14 @@ func Init(name, exe string, noNomatch bool) (string, error) {
 		// the handler runs.
 		nomatch = "setopt no_nomatch\n"
 	}
-	tpl = strings.ReplaceAll(tpl, "__NOMATCH__", nomatch)
-	return strings.ReplaceAll(tpl, "__EXE__", quoted), nil
+	return strings.NewReplacer(
+		"__BT__", "`",
+		"__NOMATCH__", nomatch,
+		"__EXE__", quote(exe),
+		"__ASK__", ask,
+		"__SW__", list(prompt.LeadWords),
+		"__QW__", list(prompt.QuestionWords),
+	).Replace(tpl), nil
 }
 
 func posixQuote(s string) string {

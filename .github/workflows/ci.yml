@@ -55,6 +55,12 @@ jobs:
             chmod +x "$RUNNER_TEMP/bin/stub-agent"
           fi
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Hook script parses
+        if: matrix.shell == 'pwsh' || matrix.shell == 'powershell'
+        shell: bash
+        run: |
+          else.sh init powershell > hook.ps1
+          ${{ matrix.shell }} -NoProfile -Command '$e = $null; [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path hook.ps1), [ref]$null, [ref]$e); if ($e) { $e; exit 1 }'
       - name: Prompt reaches the agent, typo does not
         shell: bash
         run: |

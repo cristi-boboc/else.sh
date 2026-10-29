@@ -31,6 +31,18 @@ var intentWords = map[string]bool{
 	"is": true, "are": true, "does": true, "do": true, "hey": true, "hi": true,
 }
 
+// LeadWords start a prompt even when they name a real command (macOS ships
+// /usr/bin/what), as long as the line has at least three words. The shell
+// hooks check these on Enter, before the line runs.
+var LeadWords = []string{"what", "whats", "why", "how", "explain"}
+
+// QuestionWords start a prompt, even when they name a real command, if the
+// line ends with "?".
+var QuestionWords = []string{
+	"what", "whats", "why", "how", "explain", "where", "when", "which", "who",
+	"is", "are", "can", "could", "should", "would", "does", "do",
+}
+
 // Decision is the outcome for one command line.
 type Decision struct {
 	Accept bool

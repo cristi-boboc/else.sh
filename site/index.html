@@ -216,7 +216,7 @@
 <section id="decides" aria-labelledby="h-decides">
   <div class="col">
     <h2 id="h-decides">How it decides</h2>
-    <p>else.sh only sees lines your shell could not run. Real commands, aliases and functions never reach it. For everything else it asks one question: did you mean to talk to an agent?</p>
+    <p>else.sh sees lines your shell could not run, and asks one question: did you mean to talk to an agent? Questions get through even when their first word is a real command: a line starting with <em>what</em>, <em>why</em>, <em>how</em> or <em>explain</em> with three or more words, or any question ending in <code>?</code>, is handed over when you press Enter.</p>
   </div>
   <div class="table">
     <table>
@@ -225,6 +225,8 @@
         <tr><td><code>refactor the auth middleware</code></td><td class="agent">agent</td><td class="why">several words, not a command</td></tr>
         <tr><td><code>why is CI red</code></td><td class="agent">agent</td><td class="why">starts with a question or a verb (why, fix, explain, write…)</td></tr>
         <tr><td><code>tests?</code></td><td class="agent">agent</td><td class="why">ends with a question mark</td></tr>
+        <tr><td><code>what does it do ?</code></td><td class="agent">agent</td><td class="why">a question, even though macOS has a <code>what</code> command</td></tr>
+        <tr><td><code>which python3</code></td><td class="no">runs it</td><td class="why">a real command, and not a question</td></tr>
         <tr><td><code>gti status</code></td><td class="no">not found</td><td class="why">one edit away from <code>git</code></td></tr>
         <tr><td><code>foo</code></td><td class="no">not found</td><td class="why">a single word</td></tr>
         <tr><td>a missing command in a script</td><td class="no">not found</td><td class="why">only interactive terminals are handled</td></tr>
@@ -234,7 +236,7 @@
   <div class="col">
     <ul class="notes">
       <li>A line that starts with a real command runs it: <code>make the tests pass</code> runs <code>make</code>. Use <code>else.sh ask make the tests pass</code> for those.</li>
-      <li>An apostrophe opens a quote in every shell, so <code>what's this</code> waits for more input. Write <code>whats this</code>.</li>
+      <li>Apostrophes work in question lines (<code>what's in this repo</code>). Elsewhere an apostrophe still opens a quote and the shell waits for more input.</li>
       <li>Set <code>ELSE_SH_DEBUG=1</code> to see why a line was or wasn't handed over.</li>
     </ul>
   </div>

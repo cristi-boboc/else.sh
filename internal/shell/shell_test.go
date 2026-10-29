@@ -21,19 +21,19 @@ func TestNormalize(t *testing.T) {
 func TestInitQuotesExe(t *testing.T) {
 	exe := "/opt/it's here/else.sh"
 	for _, name := range Names {
-		s, err := Init(name, exe, true)
+		s, err := Init(name, exe, "else.sh", true)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if strings.Contains(s, "__EXE__") || strings.Contains(s, "__NOMATCH__") {
+		if strings.Contains(s, "__EXE__") || strings.Contains(s, "__NOMATCH__") || strings.Contains(s, "__SW__") || strings.Contains(s, "__ASK__") {
 			t.Errorf("%s: unreplaced placeholder", name)
 		}
 	}
-	z, _ := Init(Zsh, exe, true)
+	z, _ := Init(Zsh, exe, "else.sh", true)
 	if !strings.Contains(z, "setopt no_nomatch") || !strings.Contains(z, `'/opt/it'\''s here/else.sh'`) {
 		t.Errorf("zsh script wrong:\n%s", z)
 	}
-	if p, _ := Init(PowerShell, exe, true); !strings.Contains(p, `'/opt/it''s here/else.sh'`) {
+	if p, _ := Init(PowerShell, exe, "else.sh", true); !strings.Contains(p, `'/opt/it''s here/else.sh'`) {
 		t.Errorf("powershell quoting wrong:\n%s", p)
 	}
 }

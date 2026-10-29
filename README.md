@@ -85,13 +85,17 @@ macOS ships bash 3.2, which has no hook either; use zsh (the default) or `brew i
 
 ## How it decides
 
-else.sh only ever sees lines your shell could not run. Real commands, aliases and functions never reach it.
+else.sh sees lines your shell could not run. On top of that, a line that starts with *what*, *why*, *how* or
+*explain* and has three or more words, or any question (*where*, *which*, *is*, *can*…) ending in `?`, is handed
+to the agent when you press Enter, even if its first word happens to be a real command. Everything else
+runs exactly as before.
 
 | you type                         | result |
 |----------------------------------|--------|
 | `refactor the auth middleware`   | agent  |
 | `why is CI red`                  | agent (starts with a question or verb such as *why*, *fix*, *explain*) |
 | `tests?`                         | agent (ends with `?`) |
+| `what does it do ?`              | agent, even though macOS has a `/usr/bin/what` command |
 | `gti status`                     | normal error, one edit away from `git` |
 | `foo`                            | normal error, a single word |
 | any line in a script or pipe     | normal error, only interactive terminals are handled |
@@ -100,7 +104,8 @@ Things to know:
 
 - A line that starts with a real command runs that command: `make the tests pass` runs `make`.
   Use `else.sh ask make the tests pass` for those.
-- An apostrophe opens a quote in every shell, so `what's this` waits for more input. Write `whats this`.
+- Apostrophes are fine in those question lines (`what's in this repo`). Elsewhere an apostrophe still opens a
+  quote, so the shell waits for more input.
 - In zsh, else.sh sets `no_nomatch` so a `?` in a prompt doesn't abort the line. Set `zsh_no_nomatch = false` to opt out.
 
 ## Commands
