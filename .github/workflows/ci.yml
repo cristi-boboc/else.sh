@@ -49,7 +49,7 @@ jobs:
           go build -o "$RUNNER_TEMP/bin/" ./cmd/else.sh
           printf '[agents.stub]\ncommand = "stub-agent"\n' > "$ELSE_SH_CONFIG"
           if [ "$RUNNER_OS" = Windows ]; then
-            printf '@echo off\r\necho STUB-AGENT: %%*\r\n' > "$RUNNER_TEMP/bin/stub-agent.cmd"
+            printf '@echo off\r\necho STUB-AGENT: %%~1\r\n' > "$RUNNER_TEMP/bin/stub-agent.cmd"
           else
             printf '#!/bin/sh\necho "STUB-AGENT: $*"\n' > "$RUNNER_TEMP/bin/stub-agent"
             chmod +x "$RUNNER_TEMP/bin/stub-agent"

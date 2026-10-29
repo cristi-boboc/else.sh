@@ -41,6 +41,7 @@ func TestInitQuotesExe(t *testing.T) {
 func TestInstallIdempotent(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("ZDOTDIR", "")
 	rc := filepath.Join(home, ".zshrc")
 	os.WriteFile(rc, []byte("export FOO=1"), 0o644)
