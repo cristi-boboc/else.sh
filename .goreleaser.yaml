@@ -31,6 +31,44 @@ archives:
         formats: [zip]
     files: [LICENSE, README.md]
 
+# Published only when the TAP_DEPLOY_KEY secret exists (an SSH deploy key with
+# write access to both repos), so releases keep working without it.
+homebrew_casks:
+  - name: else.sh
+    binaries: [else.sh]
+    homepage: https://cristi-boboc.github.io/else.sh/
+    description: Type a prompt in your shell and your coding agent picks it up
+    license: MIT
+    skip_upload: '{{ if eq (envOrDefault "TAP_DEPLOY_KEY" "") "" }}true{{ else }}false{{ end }}'
+    repository:
+      owner: cristi-boboc
+      name: homebrew-tap
+      git:
+        url: git@github.com:cristi-boboc/homebrew-tap.git
+        private_key: '{{ envOrDefault "TAP_DEPLOY_KEY" "" }}'
+    commit_msg_template: "else.sh {{ .Tag }}"
+    caveats: "Run `else.sh install` to hook your shell and pick a default agent."
+    hooks:
+      post:
+        # The binary isn't notarized; drop the quarantine flag so Gatekeeper lets it run.
+        install_steps: |
+          run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/else.sh"]
+
+scoops:
+  - name: else.sh
+    homepage: https://cristi-boboc.github.io/else.sh/
+    description: Type a prompt in your shell and your coding agent picks it up
+    license: MIT
+    skip_upload: '{{ if eq (envOrDefault "TAP_DEPLOY_KEY" "") "" }}true{{ else }}false{{ end }}'
+    repository:
+      owner: cristi-boboc
+      name: scoop-bucket
+      git:
+        url: git@github.com:cristi-boboc/scoop-bucket.git
+        private_key: '{{ envOrDefault "TAP_DEPLOY_KEY" "" }}'
+    commit_msg_template: "else.sh {{ .Tag }}"
+    post_install: ["Write-Host 'Run else.sh install to hook PowerShell and pick a default agent.'"]
+
 checksum:
   name_template: checksums.txt
 

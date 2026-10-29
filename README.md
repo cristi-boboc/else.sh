@@ -39,6 +39,9 @@ then runs `else.sh install`. That command:
 
 Open a new terminal and type something you'd say to an agent.
 
+Homebrew (macOS): `brew install --cask cristi-boboc/tap/else.sh && else.sh install`
+Scoop (Windows): `scoop bucket add cristi-boboc https://github.com/cristi-boboc/scoop-bucket && scoop install else.sh && else.sh install`
+
 With Go 1.26+: `go install github.com/cristi-boboc/else.sh/cmd/else.sh@latest && else.sh install`.
 
 ## Agents
