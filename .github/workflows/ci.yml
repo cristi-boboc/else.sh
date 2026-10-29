@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test ./...
+
+  # Loads the real hook in each shell and checks that a prompt reaches a stub agent.
+  hooks:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-latest, shell: bash }
+          - { os: ubuntu-latest, shell: zsh }
+          - { os: ubuntu-latest, shell: fish }
+          - { os: ubuntu-latest, shell: pwsh }
+          - { os: windows-latest, shell: pwsh }
+          - { os: windows-latest, shell: powershell }
+    runs-on: ${{ matrix.os }}
+    env:
+      ELSE_SH_ASSUME_TTY: "1"
+      ELSE_SH_CONFIG: ${{ github.workspace }}/ci-config.toml
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Install shells
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh fish
+      - name: Build else.sh and a stub agent
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          go build -o "$RUNNER_TEMP/bin/" ./cmd/else.sh
+          printf '[agents.stub]\ncommand = "stub-agent"\n' > "$ELSE_SH_CONFIG"
+          if [ "$RUNNER_OS" = Windows ]; then
+            printf '@echo off\r\necho STUB-AGENT: %%*\r\n' > "$RUNNER_TEMP/bin/stub-agent.cmd"
+          else
+            printf '#!/bin/sh\necho "STUB-AGENT: $*"\n' > "$RUNNER_TEMP/bin/stub-agent"
+            chmod +x "$RUNNER_TEMP/bin/stub-agent"
+          fi
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Prompt reaches the agent, typo does not
+        shell: bash
+        run: |
+          else.sh use stub
+          sh="${{ matrix.shell }}"
+          case "$sh" in
+            bash|zsh) run() { "$sh" -i -c "eval \"\$(else.sh init $sh)\"; $1" 2>&1; } ;;
+            fish)     run() { fish -i -c "else.sh init fish | source; $1" 2>&1; } ;;
+            *)        run() { "$sh" -NoProfile -Command "& else.sh init powershell | Out-String | Invoke-Expression; $1" 2>&1; } ;;
+          esac
+          out=$(run "fix the flaky test" || true); echo "$out"
+          echo "$out" | grep -q "STUB-AGENT: fix the flaky test"
+          out=$(run "gti status" || true); echo "$out"   # git exists on runners, so this is a typo
+          ! echo "$out" | grep -q "STUB-AGENT"

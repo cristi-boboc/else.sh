@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: else.sh
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./...
+
+builds:
+  - id: else.sh
+    main: ./cmd/else.sh
+    binary: else.sh
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin, windows, freebsd]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/cristi-boboc/else.sh/internal/cli.Version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [LICENSE, README.md]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^chore:", "^ci:"]
+
+release:
+  footer: |
+    ## Install
+
+    **macOS / Linux / WSL**
+    ```sh
+    curl -fsSL https://cristi-boboc.github.io/else.sh/install.sh | sh
+    ```
+
+    **Windows (PowerShell)**
+    ```powershell
+    irm https://cristi-boboc.github.io/else.sh/install.ps1 | iex
+    ```

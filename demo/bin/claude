@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Stand-in for Claude Code used only to record the demo GIF deterministically.
+p="$*"
+o=$'\e[38;5;209m' d=$'\e[2m' b=$'\e[1m' r=$'\e[0m'
+printf '%s╭──────────────────────────────────────────────╮%s\n' "$o" "$r"
+printf '%s│%s %s*%s Welcome to %sClaude Code%s                     %s│%s\n' "$o" "$r" "$o" "$r" "$b" "$r" "$o" "$r"
+printf '%s│%s   %scwd: ~/code/api%s                            %s│%s\n' "$o" "$r" "$d" "$r" "$o" "$r"
+printf '%s╰──────────────────────────────────────────────╯%s\n\n' "$o" "$r"
+printf '%s>%s %s\n\n' "$b" "$r" "$p"
+sleep 0.8
+for line in "Read auth/token_test.go" "Read auth/token.go" "Edit auth/token.go: compare expiry against one clock reading" "Bash go test ./auth/...  → ok"; do
+  printf '%s●%s %s\n' "$o" "$r" "$line"; sleep 0.7
+done
+printf '\n%sFixed: TestTokenExpiry read time.Now() twice and flaked at the boundary.%s\n' "$b" "$r"
